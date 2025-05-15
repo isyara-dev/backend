@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*
+*.pem
+*.key
+*.cert
+
+# Logs
+logs/
+*.log
+
+# Build outputs
+/dist
+/build
+/.next
+/out
+/.nuxt
+
+# Cache
+.cache/
+.npm
+.eslintcache
+.parcel-cache
+
+# Coverage and test reports
+/coverage
+/.nyc_output
+/cypress/videos
+/cypress/screenshots
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime*
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db 
