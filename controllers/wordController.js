@@ -1,4 +1,4 @@
-import supabase from '../services/supabaseClient.js';
+import {supabase} from '../services/supabaseClient.js';
 
 // Get all words
 const getAllWords = async (req, res) => {

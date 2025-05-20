@@ -1,4 +1,4 @@
-import supabase from '../services/supabaseClient.js';
+import { supabase } from '../services/supabaseClient.js';
 
 // Get user by ID
 const getUserById = async (req, res) => {

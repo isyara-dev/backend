@@ -1,4 +1,4 @@
-import supabase from '../services/supabaseClient.js';
+import {supabase} from '../services/supabaseClient.js';
 
 // Get leaderboard
 const getLeaderboard = async (req, res) => {

@@ -1,4 +1,4 @@
-import supabase from '../services/supabaseClient.js';
+import {supabase} from '../services/supabaseClient.js';
 
 // Get all progress for a user
 const getUserProgress = async (req, res) => {
@@ -9,7 +9,7 @@ const getUserProgress = async (req, res) => {
       .from('progress_user')
       .select(`
         *,
-        letter:letter_id (
+        submodule:submodule_id (
           id,
           char,
           image_url

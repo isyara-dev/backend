@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import healthRoutes from './routes/healthRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import letterRoutes from './routes/letterRoutes.js';
+import submoduleRoutes from './routes/submoduleRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
 import wordRoutes from './routes/wordRoutes.js';
 import leaderboardRoutes from './routes/leaderboardRoutes.js';
@@ -25,7 +25,7 @@ app.use(express.json());
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/letters', letterRoutes);
+app.use('/api/submodules', submoduleRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/words', wordRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
@@ -44,5 +44,5 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 }); 
