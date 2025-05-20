@@ -18,9 +18,9 @@ router.post('/test-google-user', async (req, res) => {
     // Gunakan UUID valid untuk testing
     const testUser = {
       id: req.body.id || uuidv4(), // Generate UUID jika tidak ada
-      email: req.body.email || "test.google@example.com",
-      username: req.body.username || "Google Test User",
-      avatar_url: req.body.avatar_url || "https://lh3.googleusercontent.com/test-avatar.jpg"
+      email: req.body.email || 'test.google@example.com',
+      username: req.body.username || 'Google Test User',
+      avatar_url: req.body.avatar_url || 'https://lh3.googleusercontent.com/test-avatar.jpg'
     };
     
     console.log('Testing with user data:', testUser);
@@ -96,21 +96,21 @@ router.get('/test-google-auth', (req, res) => {
   // Ini adalah contoh data yang akan diterima dari Supabase setelah login Google
   const mockGoogleAuthData = {
     session: {
-      access_token: "example-jwt-token",
+      access_token: 'example-jwt-token',
       expires_at: new Date().getTime() + 3600000, // 1 hour from now
-      refresh_token: "example-refresh-token",
+      refresh_token: 'example-refresh-token',
       user: {
-        id: "google-user-id-test",
-        email: "test.google@example.com",
+        id: 'google-user-id-test',
+        email: 'test.google@example.com',
         user_metadata: {
-          full_name: "Google Test User",
-          avatar_url: "https://lh3.googleusercontent.com/test-avatar.jpg",
-          iss: "https://accounts.google.com",
-          provider_id: "google"
+          full_name: 'Google Test User',
+          avatar_url: 'https://lh3.googleusercontent.com/test-avatar.jpg',
+          iss: 'https://accounts.google.com',
+          provider_id: 'google'
         },
         app_metadata: {
-          provider: "google",
-          providers: ["google"]
+          provider: 'google',
+          providers: ['google']
         }
       }
     }

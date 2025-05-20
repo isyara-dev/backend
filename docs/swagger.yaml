@@ -1,0 +1,307 @@
+openapi: 3.0.3
+info:
+  title: ISYARA API
+  description: API documentation for the backend service.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Local server
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Progress
+    description: User learning progress endpoints
+  - name: Content
+    description: Content-related endpoints
+  - name: System
+    description: System-level endpoints
+
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      tags:
+        - System
+      responses:
+        '200':
+          description: Server is healthy
+
+  /api/auth/login:
+    post:
+      summary: User login
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Successful login
+
+  /api/users:
+    get:
+      summary: Get all users
+      tags:
+        - Auth
+      responses:
+        '200':
+          description: List of users
+
+  /api/progress:
+    post:
+      summary: Update user progress for a letter
+      tags:
+        - Progress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                letter_id:
+                  type: string
+                  example: "let_abc123"
+                is_completed:
+                  type: boolean
+                  example: true
+              required:
+                - letter_id
+      responses:
+        '200':
+          description: Progress created or updated
+          content:
+            application/json:
+              example:
+                id: 45
+                user_id: "user_789"
+                letter_id: "let_abc123"
+                is_completed: true
+                updated_at: "2025-05-20T12:34:56.000Z"
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              example:
+                error: "Letter ID is required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              example:
+                error: "Failed to update progress"
+
+  /api/progress/sub:
+    get:
+      summary: Get sub-module progress for a user
+      tags:
+        - Progress
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+            example: "userId"
+        - in: query
+          name: mod
+          required: false
+          schema:
+            type: string
+            example: "moduleId"
+      responses:
+        '200':
+          description: Combined sub-module progress
+          content:
+            application/json:
+              example:
+                - id: "1"
+                  module_id: "1"
+                  name: "A"
+                  image_url: "https://cdn.example.com/images/sub1.png"
+                  order_index: 1
+                  is_completed: true
+                  has_progress: true
+                - id: "2"
+                  module_id: "1"
+                  name: "B"
+                  image_url: "https://cdn.example.com/images/sub2.png"
+                  order_index: 2
+                  is_completed: false
+                  has_progress: false
+        '400':
+          description: Missing userId
+          content:
+            application/json:
+              example:
+                error: "Failed to fetch module progress"
+                details: "Function error on Supabase"
+
+  /api/progress/module/{languageId}/{userId}:
+    get:
+      summary: Get module progress for a user
+      tags:
+        - Progress
+      parameters:
+        - in: path
+          name: languageId
+          required: true
+          schema:
+            type: string
+            example: "languageId"
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            example: "userId"
+      responses:
+        '200':
+          description: Module progress fetched successfully
+          content:
+            application/json:
+              example:
+                - module_id: "1"
+                  name: "Huruf A-D"
+                  description: "A, B, C, D"
+                  completed: 4
+                  total: 4
+                - module_id: "2"
+                  name: "Huruf E-H"
+                  description: "E, F, G, H"
+                  completed: 1
+                  total: 4
+        '500':
+          description: Failed to fetch module progress
+          content:
+            application/json:
+              example:
+                error: "Failed to fetch module progress"
+                details: "Function error on Supabase"
+
+  /api/progress/language/{userId}:
+    get:
+      summary: Get language progress for a user
+      tags:
+        - Progress
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            example: "userId"
+      responses:
+        '200':
+          description: Language progress data
+          content:
+            application/json:
+              example:
+                - language_code: "BISINDO"
+                  language_name: "Bahasa Isyarat Indonesia"
+                  completed: 3
+                  total: 6
+                - language_code: "SIBI"
+                  language_name: "Sistem Isyarat Bahasa Indonesia"
+                  completed: 0
+                  total: 3
+        '500':
+          description: Failed to fetch module progress
+          content:
+            application/json:
+              example:
+                error: "Failed to fetch language progress"
+                details: "Function error on Supabase"
+
+  /api/hands:
+    get:
+      summary: Get hand data by module or sub-module
+      tags:
+        - Content
+      parameters:
+        - in: query
+          name: mod
+          schema:
+            type: string
+          description: Specific module ID
+        - in: query
+          name: sub
+          schema:
+            type: string
+          description: Specific sub-module ID
+      responses:
+        '200':
+          description: Hand data fetched successfully
+          content:
+            application/json:
+              example:
+                - name: "A"
+                  image_url: "https://example.com/images/bisindo_a.jpg"
+                - name: "B"
+                  image_url: "https://example.com/images/bisindo_b.jpg"
+        '500':
+          description: Gagal mengambil data dari server
+          content:
+            application/json:
+              example:
+                error: "Failed to fetch hands"
+
+  /api/words:
+    get:
+      summary: Get all words
+      tags:
+        - Content
+      responses:
+        '200':
+          description: Word list
+
+  /api/leaderboard:
+    get:
+      summary: Get top users from the leaderboard
+      tags:
+        - Content
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          description: Number of top users to retrieve (max 100)
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: Leaderboard data retrieved successfully
+          content:
+            application/json:
+              example:
+                - rank: 1
+                  user_id: "user_001"
+                  username: "signmaster"
+                  avatar_url: "https://example.com/avatars/user_001.png"
+                  best_score: 980
+                - rank: 2
+                  user_id: "user_002"
+                  username: "deaflegend"
+                  avatar_url: "https://example.com/avatars/user_002.png"
+                  best_score: 870
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              example:
+                error: "Failed to fetch leaderboard"
+                details: "Function call failed"
+
