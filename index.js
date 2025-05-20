@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { setupSwagger } from './swagger.js';
 
 // Import routes
 import healthRoutes from './routes/healthRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import submoduleRoutes from './routes/submoduleRoutes.js';
+import handRoutes from './routes/handRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
 import wordRoutes from './routes/wordRoutes.js';
 import leaderboardRoutes from './routes/leaderboardRoutes.js';
@@ -21,11 +22,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Setelah middleware dan sebelum routes
+setupSwagger(app);
+
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/submodules', submoduleRoutes);
+app.use('/api/hands', handRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/words', wordRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
@@ -43,6 +47,8 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-}); 
+  console.log(`✅ Server running at http://localhost:${PORT}`);
+  console.log(`📚 Swagger docs available at http://localhost:${PORT}/api-docs`);
+});

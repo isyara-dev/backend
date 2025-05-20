@@ -1,33 +1,4 @@
-import {supabase} from '../services/supabaseClient.js';
-
-// Get all progress for a user
-const getUserProgress = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    const { data: progress, error } = await supabase
-      .from('progress_user')
-      .select(`
-        *,
-        submodule:submodule_id (
-          id,
-          char,
-          image_url
-        )
-      `)
-      .eq('user_id', userId);
-    
-    if (error) {
-      console.error('Error fetching progress:', error);
-      return res.status(500).json({ error: 'Failed to fetch progress' });
-    }
-    
-    return res.status(200).json(progress);
-  } catch (error) {
-    console.error('Error in getUserProgress:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-};
+import { supabase } from '../services/supabaseClient.js';
 
 // Update progress for a letter
 const updateProgress = async (req, res) => {
@@ -102,40 +73,134 @@ const updateProgress = async (req, res) => {
   }
 };
 
-// Get progress for a specific letter
-const getLetterProgress = async (req, res) => {
+// Get a preprocess data progress for a sub module
+const getCombinedData = async (userId, moduleId = null) => {
   try {
-    const userId = req.user.id;
-    const { letter_id } = req.params;
-    
-    const { data: progress, error } = await supabase
-      .from('progress_user')
-      .select(`
-        *,
-        letter:letter_id (
-          id,
-          char,
-          image_url
-        )
-      `)
-      .eq('user_id', userId)
-      .eq('letter_id', letter_id)
-      .maybeSingle();
-    
-    if (error) {
-      console.error('Error fetching letter progress:', error);
-      return res.status(500).json({ error: 'Failed to fetch letter progress' });
+    let query = supabase.from('sub_modules').select('*');
+
+    if (moduleId) {
+      // Filter by module_id dan order by order_index
+      query = query.eq('module_id', Number(moduleId))
+        .order('order_index', { ascending: true });
+    } else {
+      // Ambil semua, urutkan by module_id lalu order_index
+      query = query.order('module_id', { ascending: true })
+        .order('order_index', { ascending: true });
     }
-    
-    if (!progress) {
-      return res.status(200).json({ exists: false, is_completed: false });
-    }
-    
-    return res.status(200).json({ ...progress, exists: true });
+
+    const { data: submodules, error: subError } = await query;
+    if (subError) throw new Error('Failed to fetch sub_modules: ' + subError.message);
+
+    const { data: userProgress, error: progError } = await supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (progError) throw new Error('Failed to fetch user_progress: ' + progError.message);
+
+    const progressMap = new Map();
+    userProgress.forEach(up => progressMap.set(up.sub_module_id, up));
+
+    const combinedData = submodules.map(submodule => {
+      const progress = progressMap.get(submodule.id);
+      return {
+        id: submodule.id,
+        module_id: submodule.module_id,
+        name: submodule.name,
+        image_url: submodule.image_url,
+        order_index: submodule.order_index,
+        is_completed: progress ? progress.is_completed : false,
+        has_progress: !!progress,
+      };
+    });
+
+    return combinedData;
   } catch (error) {
-    console.error('Error in getLetterProgress:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Error in getCombinedData:', error);
+    throw error;
   }
 };
 
-export { getUserProgress, updateProgress, getLetterProgress }; 
+// Get progress for a sub module
+const getSubProgress = async (req, res) => {
+  const { userId, mod } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing userId query parameter' });
+  }
+
+  try {
+    const data = await getCombinedData(userId, mod);
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error('Error in getSubProgress:', error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+};
+
+// Get progress for a module
+const getModuleProgress = async (req, res) => {
+  try {
+    // const userId = req.user.id;
+    const { userId, languageId } = req.params;
+    
+    // Call the PostgreSQL function
+    const { data, error } = await supabase
+      .rpc('get_module_progress', {
+        p_user_id: userId,
+        p_language_id: languageId
+      });
+
+    if (error) {
+      console.error('Supabase module progress error:', error);
+      return res.status(500).json({ 
+        error: 'Failed to fetch module progress',
+        details: error.message 
+      });
+    }
+
+    // Return the formatted module progress data
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error('Server error in getModuleProgress:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+};
+
+// Get progress for a language
+const getLanguageProgress = async (req, res) => {
+  try {
+    // const userId = req.user.id;
+    const { userId } = req.params;
+    
+    // Call the PostgreSQL function
+    const { data, error } = await supabase
+      .rpc('get_language_progress', {
+        user_id: userId
+      });
+
+    if (error) {
+      console.error('Supabase module progress error:', error);
+      return res.status(500).json({ 
+        error: 'Failed to fetch module progress',
+        details: error.message 
+      });
+    }
+
+    // Return the formatted module progress data
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error('Server error in getModuleProgress:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+};
+
+export { getSubProgress, getModuleProgress, getLanguageProgress, updateProgress }; 
