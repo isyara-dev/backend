@@ -1,5 +1,5 @@
 import express from 'express';
-import supabase from '../services/supabaseClient.js';
+import { supabase, supabaseAdmin } from '../services/supabaseClient.js';
 
 const router = express.Router();
 
@@ -12,7 +12,7 @@ router.get('/', (req, res) => {
 router.get('/db-test', async (req, res) => {
   try {
     // Test basic connection
-    const { data, error } = await supabase.from('letters').select('count');
+    const { data, error } = await supabase.from('sub_modules').select('count');
     
     if (error) {
       console.error('Database connection test failed:', error);
@@ -26,7 +26,7 @@ router.get('/db-test', async (req, res) => {
     
     // Try to fetch one row
     const { data: sampleRow, error: rowError } = await supabase
-      .from('letters')
+      .from('sub_modules')
       .select('*')
       .limit(1);
       

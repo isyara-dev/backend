@@ -1,21 +1,21 @@
-import supabase from '../services/supabaseClient.js';
+import { supabase } from '../services/supabaseClient.js';
 
-// Update progress for a letter
+// Update progress for a sub-module
 const updateProgress = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { letter_id, is_completed } = req.body;
+    const { sub_module_id, is_completed } = req.body;
     
-    if (!letter_id) {
-      return res.status(400).json({ error: 'Letter ID is required' });
+    if (!sub_module_id) {
+      return res.status(400).json({ error: 'Sub-module ID is required' });
     }
     
     // Check if progress entry exists
     const { data: existingProgress, error: findError } = await supabase
-      .from('progress_user')
+      .from('user_progress')
       .select('*')
       .eq('user_id', userId)
-      .eq('letter_id', letter_id)
+      .eq('sub_module_id', sub_module_id)
       .maybeSingle();
     
     if (findError) {
@@ -28,10 +28,9 @@ const updateProgress = async (req, res) => {
     if (existingProgress) {
       // Update existing progress
       const { data, error: updateError } = await supabase
-        .from('progress_user')
+        .from('user_progress')
         .update({ 
-          is_completed: is_completed !== undefined ? is_completed : existingProgress.is_completed,
-          updated_at: new Date()
+          is_completed: is_completed !== undefined ? is_completed : existingProgress.is_completed
         })
         .eq('id', existingProgress.id)
         .select()
@@ -46,13 +45,12 @@ const updateProgress = async (req, res) => {
     } else {
       // Create new progress entry
       const { data, error: insertError } = await supabase
-        .from('progress_user')
+        .from('user_progress')
         .insert([
           {
             user_id: userId,
-            letter_id,
-            is_completed: is_completed !== undefined ? is_completed : true,
-            updated_at: new Date()
+            sub_module_id,
+            is_completed: is_completed !== undefined ? is_completed : true
           }
         ])
         .select()
@@ -123,13 +121,11 @@ const getCombinedData = async (userId, moduleId = null) => {
 
 // Get progress for a sub module
 const getSubProgress = async (req, res) => {
-  const { userId, mod } = req.query;
-
-  if (!userId) {
-    return res.status(400).json({ error: 'Missing userId query parameter' });
-  }
-
   try {
+    // Use authenticated user ID if available
+    const userId = req.user.id;
+    const { mod } = req.query;
+
     const data = await getCombinedData(userId, mod);
     return res.status(200).json(data);
   } catch (error) {
@@ -141,14 +137,13 @@ const getSubProgress = async (req, res) => {
 // Get progress for a module
 const getModuleProgress = async (req, res) => {
   try {
-    // const userId = req.user.id;
     const { userId, languageId } = req.params;
     
     // Call the PostgreSQL function
     const { data, error } = await supabase
       .rpc('get_module_progress', {
         p_user_id: userId,
-        p_language_id: languageId
+        p_language_id: parseInt(languageId)
       });
 
     if (error) {
@@ -174,8 +169,9 @@ const getModuleProgress = async (req, res) => {
 // Get progress for a language
 const getLanguageProgress = async (req, res) => {
   try {
-    // const userId = req.user.id;
-    const { userId } = req.params;
+
+    const userId = req.user.id;
+    // const { userId } = req.params;
     
     // Call the PostgreSQL function
     const { data, error } = await supabase
@@ -184,18 +180,18 @@ const getLanguageProgress = async (req, res) => {
       });
 
     if (error) {
-      console.error('Supabase module progress error:', error);
+      console.error('Supabase language progress error:', error);
       return res.status(500).json({ 
-        error: 'Failed to fetch module progress',
+        error: 'Failed to fetch language progress',
         details: error.message 
       });
     }
 
-    // Return the formatted module progress data
+    // Return the formatted language progress data
     return res.status(200).json(data);
 
   } catch (error) {
-    console.error('Server error in getModuleProgress:', error);
+    console.error('Server error in getLanguageProgress:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
       message: error.message 

@@ -33,9 +33,10 @@ Backend for ISYARA - Indonesian Sign Language Learning Application with Gamifica
 ## API Endpoints
 
 ### Auth
-- `POST /api/auth/login`: Login or register with Google OAuth data
+- `POST /api/auth/save-user`: Save or update user data after Google OAuth login
 - `POST /api/auth/register`: Register manually with email and password
 - `GET /api/auth/me`: Get current user profile (requires authentication)
+- `POST /api/auth/test-google-user`: Test endpoint to simulate Google OAuth login (for development only)
 
 ### Users
 - `GET /api/users/:id`: Get user by ID
@@ -63,3 +64,16 @@ Backend for ISYARA - Indonesian Sign Language Learning Application with Gamifica
 ## Authentication
 
 This API uses Supabase authentication. To access protected endpoints, include an Authorization header with a Bearer token: 
+`Authorization: Bearer your_token_here`
+
+## Google OAuth Integration
+
+The authentication flow with Google works as follows:
+
+1. Frontend uses Supabase Auth UI or client to initiate Google OAuth
+2. After successful Google login, frontend receives user data from Supabase
+3. Frontend calls `/api/auth/save-user` endpoint with the user data
+4. Backend saves/updates user information in the database
+5. Frontend stores the access token for authenticated requests
+
+For detailed implementation instructions, see [docs/google-auth.md](docs/google-auth.md) 

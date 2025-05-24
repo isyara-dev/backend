@@ -1,4 +1,4 @@
-import supabase from '../services/supabaseClient.js';
+import {supabase, supabaseAdmin} from '../services/supabaseClient.js';
 
 // Get current user profile (requires auth via middleware)
 const getMe = async (req, res) => {
@@ -38,114 +38,229 @@ const saveUserData = async (req, res) => {
       return res.status(400).json({ error: 'User ID and email are required' });
     }
     
-    // Cek apakah user sudah ada
-    let { data: existingUser, error: findError } = await supabase
+    // TAMBAHKAN LOG untuk debugging
+    console.log("Attempting to save user:", { id, email, username });
+    
+    // Cek apakah user sudah ada (gunakan supabaseAdmin untuk konsistensi)
+    let { data: existingUser, error: findError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', id)
       .maybeSingle();
+    
+    console.log("Existing user check result:", { existingUser, findError });
     
     if (findError && findError.code !== 'PGRST116') {
       console.error('Error finding user:', findError);
       return res.status(500).json({ error: 'Database error when finding user' });
     }
     
-    // Jika user belum ada, buat baru
-    if (!existingUser) {
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert([
-          { 
-            id, 
-            email, 
-            username: username || email.split('@')[0], 
-            avatar_url,
-            point: 0,
-            login_method: 'google',
-            created_at: new Date()
-          }
-        ])
-        .select()
-        .single();
-      
-      if (createError) {
-        console.error('Error creating user:', createError);
-        return res.status(500).json({ error: 'Failed to create user' });
-      }
-      
-      return res.status(201).json(newUser);
+    // Jika user sudah ada, langsung kembalikan data user
+    if (existingUser) {
+      console.log("User already exists, returning existing user");
+      return res.status(200).json(existingUser);
     }
     
-    // Jika user sudah ada, update data jika perlu
-    const { data: updatedUser, error: updateError } = await supabase
+    // Implementasi upsert sebagai gantinya
+    const { data: upsertedUser, error: upsertError } = await supabaseAdmin
       .from('users')
-      .update({ 
-        username: username || existingUser.username,
-        avatar_url: avatar_url || existingUser.avatar_url,
-        updated_at: new Date()
+      .upsert([
+        { 
+          id, 
+          email, 
+          username: username || email.split('@')[0], 
+          avatar_url,
+          point: 0,
+          login_method: 'google',
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      ], 
+      { 
+        onConflict: 'id', // Jika konflik pada id
+        ignoreDuplicates: false // Update jika sudah ada
       })
-      .eq('id', id)
       .select()
       .single();
     
-    if (updateError) {
-      console.error('Error updating user:', updateError);
-      return res.status(500).json({ error: 'Failed to update user' });
+    console.log("Upsert result:", { upsertedUser, upsertError });
+    
+    if (upsertError) {
+      console.error('Error upserting user:', upsertError);
+      return res.status(500).json({ error: 'Failed to save user data', details: upsertError });
     }
     
-    return res.status(200).json(updatedUser);
+    return res.status(200).json(upsertedUser);
   } catch (error) {
     console.error('Error saving user data:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-// Register user manually (if not using Supabase Auth UI)
+// Register with email
 const register = async (req, res) => {
   try {
     const { email, password, username } = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+
+    if (!email || !password || !username) {
+      return res.status(400).json({ error: 'Email, password, and username are required' });
     }
-    
-    // Register user with Supabase Auth
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+    }
+
+    const { data: existingEmail } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    const { data: existingUsername } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (existingUsername) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
-      password
+      password,
+      options: {
+        data: {
+          username,
+          login_method: 'email'
+        }
+      }
     });
-    
+
     if (authError) {
-      console.error('Error registering user:', authError);
       return res.status(400).json({ error: authError.message });
     }
-    
-    // Create user record in users table
-    const { data: userData, error: userError } = await supabase
+
+    const { user } = authData;
+
+    const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
-      .insert([
-        { 
-          id: authData.user.id, 
-          email, 
-          username: username || email.split('@')[0],
-          point: 0,
-          login_method: 'manual',
-          created_at: new Date()
-        }
-      ])
+      .insert([{
+        id: user.id,
+        email,
+        username,
+        name: username,
+        login_method: 'email',
+        created_at: new Date()
+      }])
       .select()
       .single();
-    
+
     if (userError) {
-      console.error('Error creating user record:', userError);
+      await supabaseAdmin.auth.admin.deleteUser(user.id); // pakai supabaseAdmin karena perlu service role
       return res.status(500).json({ error: 'Failed to create user record' });
     }
-    
-    return res.status(201).json(userData);
+
+    return res.status(201).json({
+      message: 'Registration successful. Please check your email for verification.',
+      user: {
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        name: userData.name
+      }
+    });
   } catch (error) {
     console.error('Registration error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-export { getMe, saveUserData, register };
+// Login with email
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError) {
+      return res.status(401).json({ error: authError.message });
+    }
+
+    let { user } = authData;
+
+    let { data: userData, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!userData) {
+      const { data: newUser, error: createError } = await supabaseAdmin
+        .from('users')
+        .insert([{
+          id: user.id,
+          email: user.email,
+          username: user.email.split('@')[0],
+          name: user.email.split('@')[0],
+          login_method: 'email',
+          created_at: new Date()
+        }])
+        .select()
+        .single();
+
+      if (createError) {
+        return res.status(500).json({ error: 'Failed to recreate user data' });
+      }
+
+      userData = newUser;
+    }
+
+    return res.status(200).json({
+      user: {
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        name: userData.name,
+        avatar_url: userData.avatar_url
+      },
+      session: {
+        access_token: authData.session.access_token,
+        refresh_token: authData.session.refresh_token,
+        expires_in: authData.session.expires_in
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
+export { getMe, saveUserData, register, login };
