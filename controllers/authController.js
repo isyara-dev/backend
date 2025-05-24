@@ -38,62 +38,59 @@ const saveUserData = async (req, res) => {
       return res.status(400).json({ error: 'User ID and email are required' });
     }
     
-    // Cek apakah user sudah ada
-    let { data: existingUser, error: findError } = await supabase
+    // TAMBAHKAN LOG untuk debugging
+    console.log("Attempting to save user:", { id, email, username });
+    
+    // Cek apakah user sudah ada (gunakan supabaseAdmin untuk konsistensi)
+    let { data: existingUser, error: findError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', id)
       .maybeSingle();
+    
+    console.log("Existing user check result:", { existingUser, findError });
     
     if (findError && findError.code !== 'PGRST116') {
       console.error('Error finding user:', findError);
       return res.status(500).json({ error: 'Database error when finding user' });
     }
     
-    // Jika user belum ada, buat baru
-    if (!existingUser) {
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert([
-          { 
-            id, 
-            email, 
-            username: username || email.split('@')[0], 
-            avatar_url,
-            point: 0,
-            login_method: 'google',
-            created_at: new Date()
-          }
-        ])
-        .select()
-        .single();
-      
-      if (createError) {
-        console.error('Error creating user:', createError);
-        return res.status(500).json({ error: 'Failed to create user' });
-      }
-      
-      return res.status(201).json(newUser);
+    // Jika user sudah ada, langsung kembalikan data user
+    if (existingUser) {
+      console.log("User already exists, returning existing user");
+      return res.status(200).json(existingUser);
     }
     
-    // Jika user sudah ada, update data jika perlu
-    const { data: updatedUser, error: updateError } = await supabase
+    // Implementasi upsert sebagai gantinya
+    const { data: upsertedUser, error: upsertError } = await supabaseAdmin
       .from('users')
-      .update({ 
-        username: username || existingUser.username,
-        avatar_url: avatar_url || existingUser.avatar_url,
-        updated_at: new Date()
+      .upsert([
+        { 
+          id, 
+          email, 
+          username: username || email.split('@')[0], 
+          avatar_url,
+          point: 0,
+          login_method: 'google',
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      ], 
+      { 
+        onConflict: 'id', // Jika konflik pada id
+        ignoreDuplicates: false // Update jika sudah ada
       })
-      .eq('id', id)
       .select()
       .single();
     
-    if (updateError) {
-      console.error('Error updating user:', updateError);
-      return res.status(500).json({ error: 'Failed to update user' });
+    console.log("Upsert result:", { upsertedUser, upsertError });
+    
+    if (upsertError) {
+      console.error('Error upserting user:', upsertError);
+      return res.status(500).json({ error: 'Failed to save user data', details: upsertError });
     }
     
-    return res.status(200).json(updatedUser);
+    return res.status(200).json(upsertedUser);
   } catch (error) {
     console.error('Error saving user data:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -266,64 +263,4 @@ const login = async (req, res) => {
 };
 
 
-// Update user profile
-const updateProfile = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { username, name, avatar_url, password } = req.body;
-    
-    // Get current user data
-    const { data: currentUser, error: fetchError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (fetchError) {
-      console.error('Error fetching user:', fetchError);
-      return res.status(500).json({ error: 'Failed to fetch user data' });
-    }
-    
-    // If user logged in with Google, prevent password update
-    if (currentUser.login_method === 'google' && password) {
-      return res.status(403).json({ error: 'Password cannot be updated for Google login users' });
-    }
-    
-    // Update password if provided and user is not using Google login
-    if (password && currentUser.login_method !== 'google') {
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: password
-      });
-      
-      if (passwordError) {
-        console.error('Error updating password:', passwordError);
-        return res.status(400).json({ error: passwordError.message });
-      }
-    }
-    
-    // Update user profile in database
-    const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
-      .update({
-        username: username || currentUser.username,
-        name: name || currentUser.name,
-        avatar_url: avatar_url || currentUser.avatar_url,
-        updated_at: new Date()
-      })
-      .eq('id', userId)
-      .select()
-      .single();
-    
-    if (updateError) {
-      console.error('Error updating profile:', updateError);
-      return res.status(500).json({ error: 'Failed to update profile' });
-    }
-    
-    return res.status(200).json(updatedUser);
-  } catch (error) {
-    console.error('Profile update error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-export { getMe, saveUserData, register, login, updateProfile };
+export { getMe, saveUserData, register, login };

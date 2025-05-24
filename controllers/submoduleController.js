@@ -6,7 +6,7 @@ const getAllSubmodules = async (req, res) => {
     console.log('Attempting to fetch submodules from Supabase...');
     
     // Test connection first
-    const { data: testData, error: testError } = await supabase.from('submodule').select('count');
+    const { data: testData, error: testError } = await supabase.from('sub_modules').select('count');
     if (testError) {
       console.error('Error testing connection:', testError);
       return res.status(500).json({ 
@@ -20,9 +20,9 @@ const getAllSubmodules = async (req, res) => {
     
     // Now fetch actual data
     const { data: submodules, error } = await supabase
-      .from('submodule')
+      .from('sub_modules')
       .select('*')
-      .order('char');
+      .order('name');
     
     if (error) {
       console.error('Detailed error fetching submodules:', error);
@@ -73,9 +73,9 @@ const getSubmoduleByChar = async (req, res) => {
     }
     
     const { data: submodule, error } = await supabase
-      .from('submodule')
+      .from('sub_modules')
       .select('*')
-      .eq('char', char.toUpperCase())
+      .eq('name', char.toUpperCase())
       .single();
     
     if (error) {
