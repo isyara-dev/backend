@@ -10,4 +10,4 @@ router.get('/:id', userController.getUserById);
 // Protected routes
 router.put('/:id', verifyUser, userController.updateUser);
 
-export default router; 
+export default router;

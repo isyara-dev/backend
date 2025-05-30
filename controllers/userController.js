@@ -4,22 +4,22 @@ import { supabase, supabaseAdmin } from '../services/supabaseClient.js';
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const { data: user, error } = await supabase
       .from('users')
       .select('id, email, username, avatar_url, point, created_at')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       console.error('Error fetching user:', error);
       return res.status(500).json({ error: 'Failed to fetch user data' });
     }
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     return res.status(200).json(user);
   } catch (error) {
     console.error('Error in getUserById:', error);
@@ -111,4 +111,4 @@ const updateUser = async (req, res) => {
   }
 };
 
-export { getUserById, updateUser }; 
+export { getUserById, updateUser };
