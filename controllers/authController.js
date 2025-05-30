@@ -1,27 +1,37 @@
-import {supabase, supabaseAdmin} from '../services/supabaseClient.js';
+import { supabase, supabaseAdmin } from '../services/supabaseClient.js';
 
 // Get current user profile (requires auth via middleware)
 const getMe = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     // Get user data from database
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single();
-    
+
     if (error) {
       console.error('Error fetching user:', error);
       return res.status(500).json({ error: 'Failed to fetch user data' });
     }
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
-    return res.status(200).json(user);
+
+    // Ambil skor dari tabel `user_scores`
+    const { data: scoreData, error: scoreError } = await supabase
+      .from('user_scores')
+      .select('score')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const score = scoreData?.score || 0; // Default ke 0 kalau belum ada data skor
+
+    // Gabungkan data user + score
+    return res.status(200).json({ ...user, score });
   } catch (error) {
     console.error('Error in getMe:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -33,63 +43,65 @@ const saveUserData = async (req, res) => {
   try {
     // Data dari frontend setelah login Google
     const { id, email, username, avatar_url } = req.body;
-    
+
     if (!id || !email) {
       return res.status(400).json({ error: 'User ID and email are required' });
     }
-    
+
     // TAMBAHKAN LOG untuk debugging
-    console.log("Attempting to save user:", { id, email, username });
-    
+    console.log('Attempting to save user:', { id, email, username });
+
     // Cek apakah user sudah ada (gunakan supabaseAdmin untuk konsistensi)
     let { data: existingUser, error: findError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', id)
       .maybeSingle();
-    
-    console.log("Existing user check result:", { existingUser, findError });
-    
+
+    console.log('Existing user check result:', { existingUser, findError });
+
     if (findError && findError.code !== 'PGRST116') {
       console.error('Error finding user:', findError);
       return res.status(500).json({ error: 'Database error when finding user' });
     }
-    
+
     // Jika user sudah ada, langsung kembalikan data user
     if (existingUser) {
-      console.log("User already exists, returning existing user");
+      console.log('User already exists, returning existing user');
       return res.status(200).json(existingUser);
     }
-    
+
     // Implementasi upsert sebagai gantinya
     const { data: upsertedUser, error: upsertError } = await supabaseAdmin
       .from('users')
-      .upsert([
-        { 
-          id, 
-          email, 
-          username: username || email.split('@')[0], 
-          avatar_url,
-          point: 0,
-          login_method: 'google',
-          created_at: new Date(),
-          updated_at: new Date()
+      .upsert(
+        [
+          {
+            id,
+            email,
+            username: username || email.split('@')[0],
+            avatar_url,
+            point: 0,
+            login_method: 'google',
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ],
+        {
+          onConflict: 'id', // Jika konflik pada id
+          ignoreDuplicates: false, // Update jika sudah ada
         }
-      ], 
-      { 
-        onConflict: 'id', // Jika konflik pada id
-        ignoreDuplicates: false // Update jika sudah ada
-      })
+      )
       .select()
       .single();
-    
-    console.log("Upsert result:", { upsertedUser, upsertError });
-    
+
+    console.log('Upsert result:', { upsertedUser, upsertError });
+
     if (upsertError) {
       console.error('Error upserting user:', upsertError);
       return res.status(500).json({ error: 'Failed to save user data', details: upsertError });
     }
-    
+
     return res.status(200).json(upsertedUser);
   } catch (error) {
     console.error('Error saving user data:', error);
@@ -117,7 +129,9 @@ const register = async (req, res) => {
 
     const usernameRegex = /^[a-zA-Z0-9_]+$/;
     if (!usernameRegex.test(username)) {
-      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+      return res
+        .status(400)
+        .json({ error: 'Username can only contain letters, numbers, and underscores' });
     }
 
     const { data: existingEmail } = await supabaseAdmin
@@ -146,9 +160,9 @@ const register = async (req, res) => {
       options: {
         data: {
           username,
-          login_method: 'email'
-        }
-      }
+          login_method: 'email',
+        },
+      },
     });
 
     if (authError) {
@@ -159,14 +173,16 @@ const register = async (req, res) => {
 
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
-      .insert([{
-        id: user.id,
-        email,
-        username,
-        name: username,
-        login_method: 'email',
-        created_at: new Date()
-      }])
+      .insert([
+        {
+          id: user.id,
+          email,
+          username,
+          name: username,
+          login_method: 'email',
+          created_at: new Date(),
+        },
+      ])
       .select()
       .single();
 
@@ -181,8 +197,8 @@ const register = async (req, res) => {
         id: userData.id,
         email: userData.email,
         username: userData.username,
-        name: userData.name
-      }
+        name: userData.name,
+      },
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -206,7 +222,7 @@ const login = async (req, res) => {
 
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
-      password
+      password,
     });
 
     if (authError) {
@@ -224,14 +240,16 @@ const login = async (req, res) => {
     if (!userData) {
       const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
-        .insert([{
-          id: user.id,
-          email: user.email,
-          username: user.email.split('@')[0],
-          name: user.email.split('@')[0],
-          login_method: 'email',
-          created_at: new Date()
-        }])
+        .insert([
+          {
+            id: user.id,
+            email: user.email,
+            username: user.email.split('@')[0],
+            name: user.email.split('@')[0],
+            login_method: 'email',
+            created_at: new Date(),
+          },
+        ])
         .select()
         .single();
 
@@ -248,19 +266,18 @@ const login = async (req, res) => {
         email: userData.email,
         username: userData.username,
         name: userData.name,
-        avatar_url: userData.avatar_url
+        avatar_url: userData.avatar_url,
       },
       session: {
         access_token: authData.session.access_token,
         refresh_token: authData.session.refresh_token,
-        expires_in: authData.session.expires_in
-      }
+        expires_in: authData.session.expires_in,
+      },
     });
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
-
 
 export { getMe, saveUserData, register, login };
