@@ -30,25 +30,23 @@ const getUserById = async (req, res) => {
 // Update user profile
 const updateUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = req.user?.id;
     const { username, name, avatar_url, email, password } = req.body;
 
     console.log('\n🔧 [updateUser] - Masuk controller');
-    console.log('➡️ Request param ID:', id);
-    console.log('➡️ Authenticated user ID from token:', req.user?.id);
+    console.log('➡️ Authenticated user ID from token:', userId);
     console.log('➡️ Request body:', req.body);
 
-    if (req.user.id !== id) {
-      console.warn('⛔ Akses ditolak: user tidak boleh update data user lain');
-      return res.status(403).json({ error: 'Forbidden: You can only update your own profile' });
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: User not authenticated' });
     }
 
-    // Ambil data user dari database (tabel custom `users`)
+    // Ambil data user dari DB
     const { data: currentUser, error: fetchError } = await supabaseAdmin
       .from('users')
       .select('*')
-      .eq('id', id)
-      .maybeSingle(); // Lebih aman saat debug
+      .eq('id', userId)
+      .maybeSingle();
 
     if (fetchError) {
       console.error('❌ Gagal fetch user dari DB:', fetchError.message);
@@ -56,25 +54,19 @@ const updateUser = async (req, res) => {
     }
 
     if (!currentUser) {
-      console.warn('⚠️ User tidak ditemukan di tabel `users`:', id);
       return res.status(404).json({ error: 'User not found in custom table' });
     }
 
-    console.log('✅ User ditemukan:', currentUser);
-
-    // Siapkan data yang akan diupdate
     const updateData = {};
     if (username) updateData.username = username;
     if (name) updateData.name = name;
     if (avatar_url) updateData.avatar_url = avatar_url;
     updateData.updated_at = new Date().toISOString();
 
-    // Update email/password jika metode login email
     if (currentUser.login_method === 'email') {
       if (email && email !== currentUser.email) {
         const { error: emailUpdateError } = await supabase.auth.updateUser({ email });
         if (emailUpdateError) {
-          console.error('❌ Gagal update email di Auth:', emailUpdateError.message);
           return res.status(500).json({ error: 'Failed to update email in Auth' });
         }
         updateData.email = email;
@@ -83,26 +75,21 @@ const updateUser = async (req, res) => {
       if (password) {
         const { error: passwordUpdateError } = await supabase.auth.updateUser({ password });
         if (passwordUpdateError) {
-          console.error('❌ Gagal update password:', passwordUpdateError.message);
           return res.status(500).json({ error: 'Failed to update password' });
         }
       }
     }
 
-    // Update ke tabel `users`
     const { data: updatedUser, error: updateError } = await supabaseAdmin
       .from('users')
       .update(updateData)
-      .eq('id', id)
+      .eq('id', userId)
       .select()
-      .maybeSingle(); // Hindari error saat rows kosong
+      .maybeSingle();
 
     if (updateError) {
-      console.error('❌ Gagal update data user:', updateError.message);
       return res.status(500).json({ error: 'Failed to update user' });
     }
-
-    console.log('✅ Berhasil update user:', updatedUser);
 
     return res.status(200).json(updatedUser);
   } catch (error) {
