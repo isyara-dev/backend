@@ -8,6 +8,6 @@ const router = express.Router();
 router.get('/:id', userController.getUserById);
 
 // Protected routes
-router.put('/:id', verifyUser, userController.updateUser);
+router.put('/me', verifyUser, userController.updateUser);
 
 export default router;
