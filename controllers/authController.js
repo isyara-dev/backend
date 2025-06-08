@@ -81,7 +81,6 @@ const saveUserData = async (req, res) => {
             email,
             username: username || email.split('@')[0],
             avatar_url,
-            point: 0,
             login_method: 'google',
             created_at: new Date(),
             updated_at: new Date(),
