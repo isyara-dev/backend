@@ -42,7 +42,7 @@ const getMe = async (req, res) => {
 const saveUserData = async (req, res) => {
   try {
     // Data dari frontend setelah login Google
-    const { id, email, username, avatar_url } = req.body;
+    const { id, email, username, name, avatar_url } = req.body;
 
     if (!id || !email) {
       return res.status(400).json({ error: 'User ID and email are required' });
@@ -80,6 +80,7 @@ const saveUserData = async (req, res) => {
             id,
             email,
             username: username || email.split('@')[0],
+            name,
             avatar_url,
             login_method: 'google',
             created_at: new Date(),
