@@ -6,7 +6,7 @@ const getMe = async (req, res) => {
     const userId = req.user.id;
 
     // Get user data from database
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -22,7 +22,7 @@ const getMe = async (req, res) => {
     }
 
     // Ambil skor dari tabel `user_scores`
-    const { data: scoreData, error: scoreError } = await supabase
+    const { data: scoreData, error: scoreError } = await supabaseAdmin
       .from('user_scores')
       .select('score')
       .eq('user_id', userId)
