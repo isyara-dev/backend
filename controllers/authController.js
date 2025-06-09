@@ -220,6 +220,7 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
+    // Otentikasi dengan Supabase untuk mendapatkan token
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -229,8 +230,9 @@ const login = async (req, res) => {
       return res.status(401).json({ error: authError.message });
     }
 
-    let { user } = authData;
+    let { user, session } = authData;
 
+    // Dapatkan data user dari database
     let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('*')
@@ -260,6 +262,7 @@ const login = async (req, res) => {
       userData = newUser;
     }
 
+    // Kembalikan data user dan token Supabase yang diperlukan
     return res.status(200).json({
       user: {
         id: userData.id,
@@ -268,11 +271,12 @@ const login = async (req, res) => {
         name: userData.name,
         avatar_url: userData.avatar_url,
       },
-      session: {
-        access_token: authData.session.access_token,
-        refresh_token: authData.session.refresh_token,
-        expires_in: authData.session.expires_in,
-      },
+      // Berikan semua data token Supabase yang diperlukan
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at: session.expires_at,
+      // Tambahkan seluruh session jika diperlukan
+      supabase_session: session,
     });
   } catch (error) {
     console.error('Login error:', error);
