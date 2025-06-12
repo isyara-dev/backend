@@ -20,7 +20,7 @@ Backend ini dibangun menggunakan Node.js, Express, dan terintegrasi dengan Supab
 
 Proyek ini telah di-deploy dan kode sumbernya tersedia untuk umum. Berikut adalah cara mereplikasi proyek ini untuk pengembangan atau kontribusi Anda sendiri.
 
-Aplikasi yang sudah berjalan dapat diakses di sini: `https://isyara-backend.up.railway.app` (Catatan: Ini adalah contoh URL berdasarkan konvensi deployment di Railway. Harap verifikasi URL sebenarnya dari lingkungan deployment.)
+Server backend yang sudah berjalan dapat diakses di sini: `https://isyara-backend.up.railway.app` (expired 19 June 2025)
 
 ### Prasyarat
 
