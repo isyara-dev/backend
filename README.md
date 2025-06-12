@@ -31,7 +31,7 @@ Proyek ini telah di-deploy dan kode sumbernya tersedia untuk umum. Berikut adala
 
 1.  **Clone repositori ini:**
     ```sh
-    git clone [https://github.com/isyara-dev/isyara-backend.git](https://github.com/isyara-dev/isyara-backend.git)
+    git clone https://github.com/isyara-dev/isyara-backend.git
     cd isyara-backend
     ```
 
