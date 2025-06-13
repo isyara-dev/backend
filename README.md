@@ -1,7 +1,11 @@
 # ISYARA Backend
-
-[![lisensi](https://img.shields.io/github/license/isyara-dev/isyara-backend?style=for-the-badge)](https://github.com/isyara-dev/isyara-backend/blob/main/LICENSE)
-[![GitHub contributors](https://img.shields.io/github/contributors/isyara-dev/isyara-backend?style=for-the-badge)](https://github.com/isyara-dev/isyara-backend/graphs/contributors)
+[![Framework](https://img.shields.io/badge/Framework-Express.js-blue?style=for-the-badge&logo=express)](https://expressjs.com/)
+[![Database](https://img.shields.io/badge/Database-Supabase-green?style=for-the-badge&logo=supabase)](https://supabase.io/)
+[![Language](https://img.shields.io/badge/Language-JavaScript-yellow?style=for-the-badge&logo=javascript)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![Runtime](https://img.shields.io/badge/Runtime-Node.js-green?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![Deployment](https://img.shields.io/badge/Deployment-Railway-purple?style=for-the-badge&logo=railway)](https://railway.app/)
+[![API Docs](https://img.shields.io/badge/API_Docs-Swagger-orange?style=for-the-badge&logo=swagger)](https://swagger.io/)
+[![Linter](https://img.shields.io/badge/Linter-ESLint-blueviolet?style=for-the-badge&logo=eslint)](https://eslint.org/)
 
 Layanan backend untuk ISYARA, sebuah aplikasi pembelajaran Bahasa Isyarat Indonesia (BISINDO) yang dilengkapi dengan gamifikasi untuk meningkatkan pengalaman belajar.
 
@@ -41,7 +45,7 @@ Proyek ini telah di-deploy dan kode sumbernya tersedia untuk umum. Berikut adala
     ```
 
 3.  **Siapkan environment variables:**
-    Buat file `.env` di direktori utama proyek. Salin konten dari `.env.example` (jika ada) atau buat dari awal dengan variabel berikut:
+    Buat file `.env` di direktori utama proyek. Lalu isi dengan variabel berikut:
     ```env
     # Kredensial Supabase
     SUPABASE_URL="your_supabase_project_url"
