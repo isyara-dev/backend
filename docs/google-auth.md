@@ -423,79 +423,10 @@ Jika mengalami masalah, periksa:
 
 ## Endpoint Backend yang Digunakan
 
-Backend harus menyediakan endpoint:
+Backend menyediakan endpoint:
 
 ```
-POST /api/auth/save-user
-GET /api/auth/me (protected, memerlukan token)
+POST /api/auth/save-user (menyimpan data user yang login dengan google)
+GET /api/auth/me (mengambil data user (protected, memerlukan token))
 ```
 
-Endpoint tersebut sudah tersedia di backend ISYARA sesuai dengan implementasi di `controllers/authController.js`.
-```
-
-## 4. Testing Tanpa Frontend
-
-Untuk testing tanpa menunggu frontend, Anda bisa:
-
-1. **Matikan RLS** untuk tabel users (jika masih diaktifkan)
-2. **Buat Manual Endpoint** untuk testing:
-
-```javascript:routes/authRoutes.js
-// Tambahkan endpoint ini untuk testing
-router.post('/test-google-user', async (req, res) => {
-  try {
-    // Buat data dummy seperti yang akan dikirim frontend
-    const testUser = {
-      id: "google-user-id-123", // Dummy ID
-      email: "test.google@example.com",
-      username: "Google User",
-      avatar_url: "https://lh3.googleusercontent.com/test-avatar.jpg",
-      login_method: "google"
-    };
-    
-    // Cek apakah user sudah ada
-    let { data: existingUser, error: findError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', testUser.id)
-      .maybeSingle();
-    
-    if (findError && findError.code !== 'PGRST116') {
-      console.error('Error finding user:', findError);
-      return res.status(500).json({ error: 'Database error when finding user' });
-    }
-    
-    // Simpan user jika belum ada
-    if (!existingUser) {
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert([{
-          id: testUser.id,
-          email: testUser.email,
-          username: testUser.username,
-          avatar_url: testUser.avatar_url,
-          point: 0,
-          login_method: testUser.login_method,
-          created_at: new Date()
-        }])
-        .select()
-        .single();
-      
-      if (createError) {
-        console.error('Error creating user:', createError);
-        return res.status(500).json({ error: 'Failed to create test user' });
-      }
-      
-      return res.status(201).json(newUser);
-    }
-    
-    return res.status(200).json(existingUser);
-  } catch (error) {
-    console.error('Test error:', error);
-    return res.status(500).json({ error: 'Test failed' });
-  }
-});
-```
-
-Kemudian tes dengan: 
-```
